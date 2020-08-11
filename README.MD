@@ -1,5 +1,7 @@
-##### Usage
-###### Server
+##### Just a little exercise to catch up with Go
+
+#### Usage
+##### Server
 Cart service listening to port 8000.
 
 To run locally: `make && bin/shopping-cart -server` 
@@ -8,7 +10,7 @@ To run in scalability mode (**Docker needed**): `make docker compose SCALE=5` ju
 
 To run unit and functional tests: `make test`
 
-###### Client
+##### Client
 This is a console client connecting to http://localhost:8000. This can be overridden via command line argument "server".
 
 To run locally: `make && bin/shopping-cart -client` 
