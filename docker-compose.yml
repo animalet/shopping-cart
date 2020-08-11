@@ -1,0 +1,63 @@
+version: '3.4'
+x-network:
+  &network
+  networks:
+    - net
+
+services:
+  consul: #Registry, discovery and more
+    image: consul
+    ports:
+      - "8500:8500"
+      - "8600:8600"
+    restart: always
+    <<: *network
+
+  redis: #Our distributed storage
+    image: redis
+    ports:
+      - "6379"
+    environment:
+      - SERVICE_CHECK_TCP=true
+    <<: *network
+    depends_on:
+      - consul
+
+  registrator: #Registers all docker containers in the network to consul
+    image: gliderlabs/registrator:latest
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    command: -internal consul://consul:8500
+    restart: always
+    depends_on:
+      - consul
+    <<: *network
+
+  load-balancer: #Load balancer using consul to discover services
+    image: fabiolb/fabio
+    environment:
+      - REGISTRY_CONSUL_ADDR=consul:8500
+    restart: always
+    depends_on:
+      - service
+    ports:
+      - "8000:9999"
+      - "9998:9998"
+    <<: *network
+
+  service: #Our service
+    image: "${GONAME}"
+    environment:
+      - SERVICE_NAME=${GONAME}
+      - CONSUL_ADDR=consul:8500
+      # Registrator variables
+      - SERVICE_TAGS=urlprefix-/ #Needed for fabio
+      - SERVICE_CHECK_TCP=true #Needed for fabio + consul (only known healthy services are added to the loop)
+    depends_on:
+      - consul
+      - redis
+    <<: *network
+
+networks:
+  net:
+    driver: bridge
